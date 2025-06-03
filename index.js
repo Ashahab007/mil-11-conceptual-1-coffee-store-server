@@ -38,7 +38,7 @@ async function run() {
       //   1.1 Note: to check for get, post, patch, delete method we use thunder client extension in vs code. after install u will get an icon of thunder to the sidebar of the vs code
     });
 
-    // 4.1
+    // 4.2 create api for coffee detail
     app.get("/coffee/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -47,6 +47,45 @@ async function run() {
       console.log(coffee);
       res.send(coffee);
     });
+
+    // 5.3 created the api for My Added Coffee's
+    app.get("/my-added-coffees/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const query = { email: email };
+      const coffees = await coffeeCollection.find(query).toArray();
+      console.log(coffees);
+      res.send(coffees);
+    });
+
+    // 6.7 creating handle likes api with patch method
+
+    app.patch("/likes/:coffeeId", async (req, res) => {
+      const id = req.params.coffeeId;
+      const email = req.body.email;
+      const filter = { _id: new ObjectId(id) };
+      const coffee = await coffeeCollection.findOne(filter);
+      // check if the user has already liked the coffee or not
+      const alreadyLiked = coffee?.likeby.includes(email);
+
+      // 6.8 now updated the doc conditionally
+      const updateDoc = alreadyLiked
+        ? {
+            $pull: {
+              // dislike coffee (pop email from likeby array)
+              likeby: email,
+            },
+          }
+        : {
+            $addToSet: {
+              // Lke coffee (push email in likeby array)
+              likeby: email,
+            },
+          };
+      await coffeeCollection.updateOne(filter, updateDoc);
+      res.send({ liked: !alreadyLiked });
+    });
+
     // 2.0 save data to the database using post method
     app.post("/add-coffee", async (req, res) => {
       const coffeeData = req.body;
@@ -56,7 +95,7 @@ async function run() {
       res.status(201).send({ ...result, message: "data paisi, thanks" });
     });
 
-    // 2.3 setup the thunder client on conceptual session 1, part-4, mil-11
+    // 2.3 setup the thunder client on conceptual   mil-11 session 1, part-4,
 
     // await client.connect();
     // Send a ping to confirm a successful connection
