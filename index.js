@@ -66,6 +66,21 @@ async function run() {
       const email = req.params.email;
       const filter = { customerEmail: email }; //as we have sent the customerEmail and coffeeId in db during order
       const myOrders = await orderCollection.find(filter).toArray();
+
+      for (const order of myOrders) {
+        const coffeeId = order.coffeeId; //coffeeId is sent to database during oreder
+        console.log(coffeeId);
+
+        const coffeeQuery = { _id: new ObjectId(coffeeId) };
+        const coffee = await coffeeCollection.findOne(coffeeQuery);
+        console.log(coffee);
+        order.name = coffee.name;
+        order.photo = coffee.photo;
+        order.taste = coffee.taste;
+        order.details = coffee.details;
+        order.price = coffee.price;
+        order.quantity = coffee.quantity;
+      }
       res.send(myOrders);
     });
 
