@@ -30,6 +30,9 @@ async function run() {
     const database = client.db("coffee-store-conceptual");
     const coffeeCollection = database.collection("coffees");
 
+    // 8.1 create a new db for myorders
+    const orderCollection = database.collection("orders");
+
     // 1.0 getting all the coffees data
     app.get("/coffees", async (req, res) => {
       const allCoffees = await coffeeCollection.find().toArray();
@@ -58,37 +61,50 @@ async function run() {
       res.send(coffees);
     });
 
-    // 6.7 creating handle likes api with patch method
+    // 6.5 creating handle likes api with patch method
 
     app.patch("/likes/:coffeeId", async (req, res) => {
+      // 6.6 find the liked coffee
       const id = req.params.coffeeId;
-      const email = req.body.email;
       const filter = { _id: new ObjectId(id) };
       const coffee = await coffeeCollection.findOne(filter);
-      // check if the user has already liked the coffee or not
+      // 6.7 took the email from the req body
+      const email = req.body.email;
+      // check if the user has already liked the coffee or not this condition is set on 6.8 updateDoc
       const alreadyLiked = coffee?.likeby.includes(email);
+      console.log("shurute like er obostha ----> alreadyLiked ", alreadyLiked);
 
       // 6.8 now updated the doc conditionally
       const updateDoc = alreadyLiked
         ? {
+            // dislike coffee (pop email from likeby array using mongodb pull method)
             $pull: {
-              // dislike coffee (pop email from likeby array)
               likeby: email,
             },
           }
         : {
             $addToSet: {
-              // Lke coffee (push email in likeby array)
+              // like coffee (push email in likeby array using mongodb addToSet method)
               likeby: email,
             },
           };
+      // 6.9 updated is send via res
       await coffeeCollection.updateOne(filter, updateDoc);
-      res.send({ liked: !alreadyLiked });
+      console.log("sheshe like er obostha ----> alreadyLiked ", !alreadyLiked);
+      res.send({
+        // sending with message (optional) to check
+        message: alreadyLiked ? "dislike successful" : "liked successful",
+        liked: !alreadyLiked,
+      });
     });
 
     // 2.0 save data to the database using post method
     app.post("/add-coffee", async (req, res) => {
       const coffeeData = req.body;
+      //converting the quantity to number
+      const quantity = coffeeData.quantity;
+      coffeeData.quantity = parseInt(quantity);
+
       const result = coffeeCollection.insertOne(coffeeData);
       console.log(coffeeData);
       // 2.2 we will send response with a status code with message
@@ -96,6 +112,30 @@ async function run() {
     });
 
     // 2.3 setup the thunder client on conceptual   mil-11 session 1, part-4,
+
+    // 8.2 create api for orders using post method
+    app.post("/place-order/:coffeeId", async (req, res) => {
+      const id = req.params.coffeeId;
+      const orderData = req.body;
+      console.log(orderData);
+
+      const result = await orderCollection.insertOne(orderData);
+      console.log(orderData);
+      // 8.3 decrease the quantity by using the id by applying mongodb $inc operator
+      if (result.acknowledged) {
+        await coffeeCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $inc: {
+              quantity: -1,
+            },
+          }
+        );
+      }
+
+      res.send(result);
+      res.status(201).send(result);
+    });
 
     // await client.connect();
     // Send a ping to confirm a successful connection
