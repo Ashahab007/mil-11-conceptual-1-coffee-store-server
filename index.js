@@ -61,8 +61,15 @@ async function run() {
       res.send(coffees);
     });
 
-    // 6.5 creating handle likes api with patch method
+    // 10.0 Now my requirement is show the my ordered coffee by customer email
+    app.get("/my-orders/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { customerEmail: email }; //as we have sent the customerEmail and coffeeId in db during order
+      const myOrders = await orderCollection.find(filter).toArray();
+      res.send(myOrders);
+    });
 
+    // 6.5 creating handle likes api with patch method
     app.patch("/likes/:coffeeId", async (req, res) => {
       // 6.6 find the liked coffee
       const id = req.params.coffeeId;
